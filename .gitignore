@@ -6,6 +6,10 @@ dist/
 # Node modules
 node_modules/
 
+# Package files
+*.tgz
+*.tar.gz
+
 # TypeScript cache
 *.tsbuildinfo
 
