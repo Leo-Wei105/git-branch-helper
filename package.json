@@ -23,7 +23,8 @@
     "workflow"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:scm"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -147,14 +148,11 @@
     "package": "vsce package"
   },
   "devDependencies": {
-    "@types/vscode": "^1.74.0",
     "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
     "eslint": "^8.28.0",
     "typescript": "^4.9.4"
-  },
-  "dependencies": {
-    "simple-git": "^3.19.1"
   }
 }

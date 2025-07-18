@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import { simpleGit, SimpleGit } from 'simple-git';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { BranchPrefix, BranchCreationOptions, BranchCreationResult, GitBranch, DateFormat } from './types';
 import { ConfigManager } from './configManager';
 import { Utils } from './utils';
 
+const execAsync = promisify(exec);
+
 export class BranchCreator {
-    private git: SimpleGit | null = null;
     private configManager: ConfigManager;
 
     constructor(configManager: ConfigManager) {
@@ -14,33 +15,44 @@ export class BranchCreator {
     }
 
     /**
-     * 初始化Git实例
+     * 获取工作区根目录
      */
-    private async initializeGit(): Promise<SimpleGit> {
-        if (this.git) {
-            return this.git;
-        }
-
-        // 获取工作区根目录
+    private getWorkspaceRoot(): string {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) {
             throw new Error('请先打开一个工作区');
         }
+        return workspaceFolder.uri.fsPath;
+    }
 
-        const workspaceRoot = workspaceFolder.uri.fsPath;
+    /**
+     * 执行Git命令
+     */
+    private async executeGitCommand(command: string): Promise<string> {
+        const workspaceRoot = this.getWorkspaceRoot();
+        console.log(`执行Git命令: ${command} (在目录: ${workspaceRoot})`);
         
-        // 检查是否为Git仓库
         try {
-            this.git = simpleGit(workspaceRoot);
-            const isRepo = await this.git.checkIsRepo();
-            
-            if (!isRepo) {
-                throw new Error('当前目录不是Git仓库');
+            const { stdout, stderr } = await execAsync(command, { cwd: workspaceRoot });
+            if (stderr && !stderr.includes('warning')) {
+                console.warn('Git命令警告:', stderr);
             }
-            
-            return this.git;
-        } catch (error) {
-            throw new Error(`Git初始化失败: ${error}`);
+            return stdout.trim();
+        } catch (error: any) {
+            console.error('Git命令失败:', error);
+            throw new Error(`Git命令执行失败: ${error.message}`);
+        }
+    }
+
+    /**
+     * 检查是否为Git仓库
+     */
+    private async isGitRepository(): Promise<boolean> {
+        try {
+            await this.executeGitCommand('git rev-parse --git-dir');
+            return true;
+        } catch {
+            return false;
         }
     }
 
@@ -56,13 +68,12 @@ export class BranchCreator {
         }
 
         // 否则从Git配置获取
-        const git = await this.initializeGit();
         try {
-            const username = await git.getConfig('user.name');
-            if (!username.value) {
+            const username = await this.executeGitCommand('git config user.name');
+            if (!username) {
                 throw new Error('未设置Git用户名，请先配置Git用户名或在插件设置中指定');
             }
-            return username.value;
+            return username;
         } catch (error) {
             throw new Error('获取Git用户名失败，请检查Git配置');
         }
@@ -72,38 +83,55 @@ export class BranchCreator {
      * 获取所有分支
      */
     private async getAllBranches(): Promise<GitBranch[]> {
-        const git = await this.initializeGit();
-        
         try {
-            const branchSummary = await git.branch(['-a']);
             const branches: GitBranch[] = [];
 
-            // 本地分支
-            Object.keys(branchSummary.branches).forEach(branchName => {
-                const branch = branchSummary.branches[branchName];
-                if (!branchName.startsWith('remotes/')) {
-                    branches.push({
-                        name: branchName,
-                        current: branch.current,
-                        isRemote: false,
-                        commit: branch.commit
-                    });
-                }
-            });
+            // 获取当前分支
+            let currentBranch = '';
+            try {
+                currentBranch = await this.executeGitCommand('git branch --show-current');
+            } catch {
+                // 如果获取当前分支失败，可能是在detached HEAD状态
+                currentBranch = '';
+            }
 
-            // 远程分支
-            Object.keys(branchSummary.branches).forEach(branchName => {
-                const branch = branchSummary.branches[branchName];
-                if (branchName.startsWith('remotes/')) {
-                    const remoteBranchName = branchName.replace('remotes/', '');
-                    branches.push({
-                        name: remoteBranchName,
-                        current: false,
-                        isRemote: true,
-                        commit: branch.commit
+            // 获取本地分支
+            const localBranchOutput = await this.executeGitCommand('git branch --format="%(refname:short)|%(objectname:short)"');
+            if (localBranchOutput) {
+                const localBranches = localBranchOutput.split('\n').filter(line => line.trim());
+                localBranches.forEach(line => {
+                    const [name, commit] = line.split('|');
+                    if (name && name.trim()) {
+                        branches.push({
+                            name: name.trim(),
+                            current: name.trim() === currentBranch,
+                            isRemote: false,
+                            commit: commit || ''
+                        });
+                    }
+                });
+            }
+
+            // 获取远程分支
+            try {
+                const remoteBranchOutput = await this.executeGitCommand('git branch -r --format="%(refname:short)|%(objectname:short)"');
+                if (remoteBranchOutput) {
+                    const remoteBranches = remoteBranchOutput.split('\n').filter(line => line.trim());
+                    remoteBranches.forEach(line => {
+                        const [name, commit] = line.split('|');
+                        if (name && name.trim() && !name.includes('HEAD')) {
+                            branches.push({
+                                name: name.trim(),
+                                current: false,
+                                isRemote: true,
+                                commit: commit || ''
+                            });
+                        }
                     });
                 }
-            });
+            } catch {
+                // 如果没有远程分支，忽略错误
+            }
 
             return branches;
         } catch (error) {
@@ -115,30 +143,44 @@ export class BranchCreator {
      * 检查分支是否存在
      */
     private async branchExists(branchName: string): Promise<boolean> {
-        const branches = await this.getAllBranches();
-        return branches.some(branch => branch.name === branchName);
+        try {
+            await this.executeGitCommand(`git rev-parse --verify ${branchName}`);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**
      * 创建并切换到新分支
      */
     private async createAndCheckoutBranch(branchName: string, baseBranch: string): Promise<void> {
-        const git = await this.initializeGit();
         const config = this.configManager.getConfiguration();
 
         try {
-            // 创建新分支
-            await git.checkoutBranch(branchName, baseBranch);
-            
-            // 显示成功消息
-            const message = `成功创建分支: ${branchName}`;
             if (config.autoCheckout) {
-                vscode.window.showInformationMessage(`${message} (已自动切换)`);
+                // 创建并切换到新分支
+                await this.executeGitCommand(`git checkout -b ${branchName} ${baseBranch}`);
+                vscode.window.showInformationMessage(`成功创建分支: ${branchName} (已自动切换)`);
             } else {
-                vscode.window.showInformationMessage(message);
+                // 仅创建分支，不切换
+                await this.executeGitCommand(`git branch ${branchName} ${baseBranch}`);
+                vscode.window.showInformationMessage(`成功创建分支: ${branchName}`);
             }
         } catch (error) {
             throw new Error(`创建分支失败: ${error}`);
+        }
+    }
+
+    /**
+     * 切换到现有分支
+     */
+    private async checkoutBranch(branchName: string): Promise<void> {
+        try {
+            await this.executeGitCommand(`git checkout ${branchName}`);
+            vscode.window.showInformationMessage(`已切换到分支: ${branchName}`);
+        } catch (error) {
+            throw new Error(`切换分支失败: ${error}`);
         }
     }
 
@@ -282,28 +324,48 @@ export class BranchCreator {
      */
     async createBranch(): Promise<BranchCreationResult> {
         try {
+            console.log('开始创建分支流程...');
+            
+            // 检查是否为Git仓库
+            const isGitRepo = await this.isGitRepository();
+            if (!isGitRepo) {
+                throw new Error('当前目录不是Git仓库');
+            }
+
             // 步骤1: 选择分支前缀
+            console.log('步骤1: 选择分支前缀');
             const selectedPrefix = await this.selectBranchPrefix();
             if (!selectedPrefix) {
+                console.log('用户取消选择分支前缀');
                 return { success: false, error: '未选择分支前缀' };
             }
+            console.log('选择的前缀:', selectedPrefix);
 
             // 步骤2: 选择基分支
+            console.log('步骤2: 选择基分支');
             const baseBranch = await this.selectBaseBranch();
             if (!baseBranch) {
+                console.log('用户取消选择基分支');
                 return { success: false, error: '未选择基分支' };
             }
+            console.log('选择的基分支:', baseBranch);
 
             // 步骤3: 获取用户名
+            console.log('步骤3: 获取用户名');
             const username = await this.getGitUsername();
+            console.log('获取的用户名:', username);
 
             // 步骤4: 输入描述信息
+            console.log('步骤4: 输入描述信息');
             const description = await this.inputBranchDescription(selectedPrefix.prefix, username);
             if (!description) {
+                console.log('用户取消输入描述信息');
                 return { success: false, error: '未输入描述信息' };
             }
+            console.log('输入的描述:', description);
 
             // 步骤5: 生成分支名称
+            console.log('步骤5: 生成分支名称');
             const config = this.configManager.getConfiguration();
             const currentDate = Utils.formatDate(new Date(), config.dateFormat as DateFormat);
             
@@ -316,10 +378,13 @@ export class BranchCreator {
             };
 
             const branchName = Utils.generateBranchName(branchCreationOptions);
+            console.log('生成的分支名称:', branchName);
 
             // 步骤6: 检查分支是否存在
+            console.log('步骤6: 检查分支是否存在');
             const exists = await this.branchExists(branchName);
             if (exists) {
+                console.log('分支已存在:', branchName);
                 const action = await vscode.window.showWarningMessage(
                     `分支 ${branchName} 已存在`,
                     '切换到该分支',
@@ -328,9 +393,7 @@ export class BranchCreator {
                 );
 
                 if (action === '切换到该分支') {
-                    const git = await this.initializeGit();
-                    await git.checkout(branchName);
-                    vscode.window.showInformationMessage(`已切换到分支: ${branchName}`);
+                    await this.checkoutBranch(branchName);
                     return { success: true, branchName };
                 } else if (action === '重新输入') {
                     return await this.createBranch();
@@ -340,18 +403,25 @@ export class BranchCreator {
             }
 
             // 步骤7: 确认创建
+            console.log('步骤7: 确认创建');
             const confirmed = await this.confirmBranchCreation(branchCreationOptions);
             if (!confirmed) {
+                console.log('用户取消创建');
                 return { success: false, error: '用户取消创建' };
             }
 
             // 步骤8: 创建分支
+            console.log('步骤8: 创建分支');
             await this.createAndCheckoutBranch(branchName, baseBranch);
+            console.log('分支创建成功');
 
             return { success: true, branchName };
 
         } catch (error) {
-            return { success: false, error: String(error) };
+            console.error('创建分支失败:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            vscode.window.showErrorMessage(`创建分支失败: ${errorMessage}`);
+            return { success: false, error: errorMessage };
         }
     }
 } 
