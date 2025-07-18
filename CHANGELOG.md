@@ -18,13 +18,13 @@
 - **自动切换**：创建分支后可自动切换到新分支
 
 ### 配置选项
-- `gitBranchCreator.branchPrefixes` - 分支前缀列表配置
-- `gitBranchCreator.customGitName` - 自定义Git用户名
-- `gitBranchCreator.dateFormat` - 日期格式选择
-- `gitBranchCreator.autoCheckout` - 自动切换分支设置
+- `gitBranchHelper.branchPrefixes` - 分支前缀列表配置
+- `gitBranchHelper.customGitName` - 自定义Git用户名
+- `gitBranchHelper.dateFormat` - 日期格式选择
+- `gitBranchHelper.autoCheckout` - 自动切换分支设置
 
 ### 操作方式
-- **快捷键**：`Ctrl+Shift+F` (Windows/Linux) / `Cmd+Shift+F` (Mac)
+- **快捷键**：`Ctrl+Alt+Shift+B` (Windows/Linux) / `Cmd+Alt+Shift+B` (Mac)
 - **命令面板**：`Git: 创建功能分支`
 - **源代码管理视图**：集成按钮
 - **右键菜单**：文件资源管理器上下文菜单

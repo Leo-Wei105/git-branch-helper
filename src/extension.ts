@@ -3,14 +3,14 @@ import { BranchCreator } from './branchCreator';
 import { ConfigManager } from './configManager';
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Git Branch Creator 插件已激活');
+    console.log('Git Branch Helper 插件已激活');
 
     const configManager = new ConfigManager();
     const branchCreator = new BranchCreator(configManager);
 
     // 注册创建分支命令
     const createBranchCommand = vscode.commands.registerCommand(
-        'gitBranchCreator.createBranch',
+        'gitBranchHelper.createBranch',
         async () => {
             try {
                 await branchCreator.createBranch();
@@ -22,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 注册管理前缀命令
     const managePrefixesCommand = vscode.commands.registerCommand(
-        'gitBranchCreator.managePrefixes',
+        'gitBranchHelper.managePrefixes',
         async () => {
             try {
                 await configManager.managePrefixes();
@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.StatusBarAlignment.Left,
         100
     );
-    statusBarItem.command = 'gitBranchCreator.createBranch';
+    statusBarItem.command = 'gitBranchHelper.createBranch';
     statusBarItem.text = '$(git-branch) 创建分支';
     statusBarItem.tooltip = '快速创建Git分支';
     statusBarItem.show();
@@ -51,5 +51,5 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    console.log('Git Branch Creator 插件已停用');
+    console.log('Git Branch Helper 插件已停用');
 } 

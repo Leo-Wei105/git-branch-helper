@@ -1,4 +1,4 @@
-# Git Branch Creator
+# Git Branch Helper
 
 一个用于快速创建标准化命名分支的VSCode插件，支持自定义分支前缀、自动生成分支名称、基分支选择等功能，提高开发效率。
 
@@ -28,13 +28,13 @@
 
 ### 1. 安装插件
 
-在VSCode扩展商店中搜索 "Git Branch Creator" 并安装。
+在VSCode扩展商店中搜索 "Git Branch Helper" 并安装。
 
 ### 2. 使用方法
 
 #### 方式一：快捷键
-- Windows/Linux: `Ctrl+Shift+F`
-- Mac: `Cmd+Shift+F`
+- Windows/Linux: `Ctrl+Alt+Shift+B`
+- Mac: `Cmd+Alt+Shift+B`
 
 #### 方式二：命令面板
 1. 打开命令面板 (`Ctrl+Shift+P` 或 `Cmd+Shift+P`)
@@ -69,10 +69,10 @@
 
 在VSCode设置中可以配置：
 
-- `gitBranchCreator.branchPrefixes` - 分支前缀列表
-- `gitBranchCreator.customGitName` - 自定义Git用户名
-- `gitBranchCreator.dateFormat` - 日期格式（yyyyMMdd、yyyy-MM-dd、yyMMdd）
-- `gitBranchCreator.autoCheckout` - 创建后自动切换分支
+- `gitBranchHelper.branchPrefixes` - 分支前缀列表
+- `gitBranchHelper.customGitName` - 自定义Git用户名
+- `gitBranchHelper.dateFormat` - 日期格式（yyyyMMdd、yyyy-MM-dd、yyMMdd）
+- `gitBranchHelper.autoCheckout` - 创建后自动切换分支
 
 ### 管理前缀
 
@@ -104,7 +104,7 @@
 1. 克隆项目：
    ```bash
    git clone [repository-url]
-   cd git-branch-creator
+   cd git-branch-helper
    ```
 
 2. 安装依赖：

@@ -54,7 +54,7 @@ hotfix/20250604/紧急修复_李四
 ### 4.1 触发方式
 | 方式 | 快捷键/路径 | 说明 |
 |------|-------------|------|
-| 快捷键 | `Ctrl+Shift+F` (Win/Linux)<br>`Cmd+Shift+F` (Mac) | 全局快捷键 |
+| 快捷键 | `Ctrl+Alt+Shift+B` (Win/Linux)<br>`Cmd+Alt+Shift+B` (Mac) | 全局快捷键 |
 | 命令面板 | `Git: Create Feature Branch` | 命令面板搜索 |
 | 源代码管理视图 | 添加快捷按钮 | SCM视图集成 |
 | 右键菜单 | 资源管理器右键菜单 | 上下文菜单 |
@@ -125,7 +125,7 @@ hotfix/20250604/紧急修复_李四
 ### 6.1 配置结构
 ```json
 {
-  "gitBranchCreator.branchPrefixes": [
+  "gitBranchHelper.branchPrefixes": [
     {
       "prefix": "feature",
       "description": "功能分支",
@@ -137,9 +137,9 @@ hotfix/20250604/紧急修复_李四
       "isDefault": false
     }
   ],
-  "gitBranchCreator.customGitName": "",
-  "gitBranchCreator.dateFormat": "yyyyMMdd",
-  "gitBranchCreator.autoCheckout": true
+  "gitBranchHelper.customGitName": "",
+  "gitBranchHelper.dateFormat": "yyyyMMdd",
+  "gitBranchHelper.autoCheckout": true
 }
 ```
 
@@ -321,7 +321,7 @@ try {
 ## 15. 部署发布
 
 ### 15.1 插件信息
-- **插件名称**：Git Branch Creator
+- **插件名称**：Git Branch Helper
 - **发布商**：您的名称
 - **版本号**：1.0.0
 - **分类**：SCM Providers

@@ -3,7 +3,7 @@ import { BranchPrefix, ConfigurationSchema, DateFormat } from './types';
 import { Utils } from './utils';
 
 export class ConfigManager {
-    private readonly configurationSection = 'gitBranchCreator';
+    private readonly configurationSection = 'gitBranchHelper';
 
     /**
      * 获取配置
