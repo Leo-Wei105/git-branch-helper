@@ -1,0 +1,160 @@
+{
+  "name": "git-branch-creator",
+  "displayName": "Git Branch Creator",
+  "description": "快速创建标准化命名的Git分支",
+  "version": "1.0.0",
+  "publisher": "Leo-Wei105",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Leo-Wei105/git-branch-helper.git"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "branch",
+    "creator",
+    "feature",
+    "workflow"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gitBranchCreator.createBranch",
+        "title": "创建功能分支",
+        "category": "Git"
+      },
+      {
+        "command": "gitBranchCreator.managePrefixes",
+        "title": "管理分支前缀",
+        "category": "Git"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "gitBranchCreator.createBranch",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "!terminalFocus"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "gitBranchCreator.createBranch",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "gitBranchCreator.createBranch",
+          "when": "explorerResourceIsFolder && gitOpenRepositoryCount > 0",
+          "group": "2_workspace"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Git Branch Creator",
+      "properties": {
+        "gitBranchCreator.branchPrefixes": {
+          "type": "array",
+          "default": [
+            {
+              "prefix": "feature",
+              "description": "功能分支",
+              "isDefault": true
+            },
+            {
+              "prefix": "feat",
+              "description": "功能分支简写",
+              "isDefault": false
+            },
+            {
+              "prefix": "bugfix",
+              "description": "修复分支",
+              "isDefault": false
+            },
+            {
+              "prefix": "hotfix",
+              "description": "热修复分支",
+              "isDefault": false
+            },
+            {
+              "prefix": "fix",
+              "description": "修复分支简写",
+              "isDefault": false
+            }
+          ],
+          "description": "分支前缀配置",
+          "items": {
+            "type": "object",
+            "properties": {
+              "prefix": {
+                "type": "string",
+                "description": "分支前缀"
+              },
+              "description": {
+                "type": "string",
+                "description": "前缀描述"
+              },
+              "isDefault": {
+                "type": "boolean",
+                "description": "是否为默认前缀"
+              }
+            }
+          }
+        },
+        "gitBranchCreator.customGitName": {
+          "type": "string",
+          "default": "",
+          "description": "自定义Git用户名（留空则使用Git配置）"
+        },
+        "gitBranchCreator.dateFormat": {
+          "type": "string",
+          "default": "yyyyMMdd",
+          "description": "日期格式",
+          "enum": [
+            "yyyyMMdd",
+            "yyyy-MM-dd",
+            "yyMMdd"
+          ]
+        },
+        "gitBranchCreator.autoCheckout": {
+          "type": "boolean",
+          "default": true,
+          "description": "创建分支后自动切换"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "simple-git": "^3.19.1"
+  }
+}
