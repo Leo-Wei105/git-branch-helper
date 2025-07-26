@@ -3,7 +3,7 @@
   "icon": "images/icon.png",
   "displayName": "Git分支助手",
   "description": "快速创建标准化命名的Git分支",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Leo-Wei105",
   "repository": {
     "type": "git",
