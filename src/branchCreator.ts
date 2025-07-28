@@ -168,6 +168,14 @@ export class BranchCreator {
   }
 
   /**
+   * 检查是否为远程分支
+   */
+  private isRemoteBranch(branchName: string): boolean {
+    // 远程分支通常以 origin/ 或其他远程名称开头
+    return branchName.includes("/") && !branchName.startsWith("refs/heads/");
+  }
+
+  /**
    * 创建并切换到新分支
    */
   private async createAndCheckoutBranch(
@@ -175,6 +183,7 @@ export class BranchCreator {
     baseBranch: string
   ): Promise<void> {
     const config = this.configManager.getConfiguration();
+    const isRemoteBaseBranch = this.isRemoteBranch(baseBranch);
 
     try {
       if (config.autoCheckout) {
@@ -189,6 +198,20 @@ export class BranchCreator {
         // 仅创建分支，不切换
         await this.executeGitCommand(`git branch ${branchName} ${baseBranch}`);
         vscode.window.showInformationMessage(`成功创建分支: ${branchName}`);
+      }
+
+      // 如果基分支是远程分支，取消新分支的上游分支设置
+      // 这样新分支就不会关联到远程分支，直到用户主动推送
+      if (isRemoteBaseBranch) {
+        try {
+          await this.executeGitCommand(
+            `git branch --unset-upstream ${branchName}`
+          );
+          console.log(`已取消分支 ${branchName} 的远程关联`);
+        } catch (error) {
+          // 如果取消上游分支失败，记录警告但不影响主流程
+          console.warn(`取消分支 ${branchName} 远程关联失败:`, error);
+        }
       }
     } catch (error) {
       throw new Error(`创建分支失败: ${error}`);
